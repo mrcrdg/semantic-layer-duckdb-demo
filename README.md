@@ -2,9 +2,8 @@
 
 Semantic layer build on taxi trip data using DuckDB and [boring semantic layer](https://github.com/boringdata/boring-semantic-layer/) (a lightweight semantic layer library built on top of Ibis). The goal is to show what a semantic layer buys: consistent metric definitions, reusable across every query, without duplicating logic.
 
-Two things are in this repo:
-1. **`nyc_taxi.py` / `nyc_taxi.yml`** — a real semantic layer over the actual 20M-row NYC taxi dataset. This is the main example.
-2. **`demo/`** — a small, self-contained script proving *why* this matters, using a tiny synthetic dataset instead of the real one. See [Why this matters](#why-this-matters-before-vs-after) below.
+In this repo:
+**`nyc_taxi.py` / `nyc_taxi.yml`** — a real semantic layer over the actual 20M-row NYC taxi dataset.
 
 ## Quick Start
 
@@ -171,6 +170,9 @@ Accessibility metrics by pickup borough:
 </details>
 
 ## Why this matters: before vs. after
+
+In this section there is:
+**`demo/`** — a small, self-contained script proving *why* this matters, using a tiny synthetic dataset instead of the real one.
 
 Everything above shows the semantic layer being *convenient* — fewer lines, no hand-written joins. But convenience isn't the strongest argument for using one. The stronger argument is **consistency**: without a shared definition, two people can both write reasonable-looking, error-free code and get *different* answers to the same question.
 
