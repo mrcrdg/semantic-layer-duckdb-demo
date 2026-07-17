@@ -1,8 +1,6 @@
 # semantic-layer-duckdb
 
-Demo testing a semantic layer — a way to define business metrics, in a single file, instead of re-writing the same SQL/join logic every time someone wants to ask a question. Once defined, it is possible to query those metrics with plain python language — no need to know the underlying joins, table names, or aggregation formulas.
-
-Here, it's demonstrated on NYC taxi trip data using DuckDB and [boring semantic layer](https://github.com/boringdata/boring-semantic-layer/) (a lightweight semantic layer library built on top of Ibis). The goal is to show what a semantic layer buys: consistent metric definitions, reusable across every query, without duplicating logic.
+Semantic layer build on taxi trip data using DuckDB and [boring semantic layer](https://github.com/boringdata/boring-semantic-layer/) (a lightweight semantic layer library built on top of Ibis). The goal is to show what a semantic layer buys: consistent metric definitions, reusable across every query, without duplicating logic.
 
 Two things are in this repo:
 1. **`nyc_taxi.py` / `nyc_taxi.yml`** — a real semantic layer over the actual 20M-row NYC taxi dataset. This is the main example.
@@ -22,6 +20,10 @@ make run      # Run NYC taxi analysis | Or use `uv run python nyc_taxi.py` direc
 > wget https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-06.parquet
 > wget https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv
 > ```
+
+## TL;DR
+
+A semantic layer defines business metrics — dimensions, measures, joins — once, in a single declarative file, decoupled from any specific query. Consumers (analysts, dashboards, notebooks, or AI agents) then request metrics by name instead of re-deriving the SQL, joins, or aggregation logic each time. Once a semantic layer is defined, it becomes possible to query business metrics with plain python language — no need to know the underlying joins, table names, or aggregation formulas or re-writing SQL/join logic every time someone wants to ask a question. This repo demonstrates that pattern end-to-end with DuckDB, Ibis, and boring-semantic-layer — and includes a small before/after demo showing the failure mode a semantic layer prevents: two independently written queries silently returning different answers to the same question.
 
 ## What you get when you run it
 
