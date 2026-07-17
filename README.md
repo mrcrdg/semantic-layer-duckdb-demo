@@ -4,6 +4,10 @@ Demo testing a semantic layer — a way to define business metrics, in a single 
 
 Here, it's demonstrated on NYC taxi trip data using DuckDB and [boring semantic layer](https://github.com/boringdata/boring-semantic-layer/) (a lightweight semantic layer library built on top of Ibis). The goal is to show what a semantic layer buys: consistent metric definitions, reusable across every query, without duplicating logic.
 
+Two things are in this repo:
+1. **`nyc_taxi.py` / `nyc_taxi.yml`** — a real semantic layer over the actual 20M-row NYC taxi dataset. This is the main example.
+2. **`demo/`** — a small, self-contained script proving *why* this matters, using a tiny synthetic dataset instead of the real one. See [Why this matters](#why-this-matters-before-vs-after) below.
+
 ## Quick Start
 
 Install [uv](https://docs.astral.sh/uv/) then run:
@@ -12,9 +16,18 @@ make install  # Install dependencies  | Or use `uv sync` directly
 make run      # Run NYC taxi analysis | Or use `uv run python nyc_taxi.py` directly
 ```
 
-## Output example
+> **NOTE: Download NYC data locally to not get 403 forbidden if you execute too many times**
+>
+> ```sh
+> wget https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-06.parquet
+> wget https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv
+> ```
 
-**Available dimensions/measures** — what the semantic layer exposes before you even write a query:
+## What you get when you run it
+
+`make run` executes `nyc_taxi.py`, which loads the semantic model from `nyc_taxi.yml` and runs five example queries against it — each answering a different kind of practical question (trip volume, popularity, pricing, revenue, accessibility). None of these queries write any SQL or joins by hand; they all just ask the pre-defined model for dimensions and measures by name.
+
+**First, the model tells you what's queryable**, before you write a single query — this is the semantic layer introspecting itself:
 
 ```
 Available dimensions (taxi_zones): ['location_id', 'borough', 'zone', 'service_zone']
@@ -25,9 +38,10 @@ Available measures (fhvhv_trips): ['trip_count', 'avg_trip_miles', 'avg_trip_tim
 ```
 The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table — you get them for free once the join is defined in the YAML, without writing any join logic yourself.
 
----
+**Then, five queries run against that model.** Each one below is: the question asked, the result, and one line on what it reveals about the data.
 
-### Trip volume by pickup borough
+### 1. Trip volume by pickup borough
+*"How many trips came from each borough, and how do fares compare?"*
 
 | Borough | Trips | Avg miles | Avg fare |
 |---|---|---|---|
@@ -39,7 +53,8 @@ The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table �
 
 **Takeaway:** Manhattan has the most trips but *not* the longest ones — its fares are highest despite shorter average distance, consistent with dense, short, expensive rides in the borough.
 
-### Most popular pickup zones
+### 2. Most popular pickup zones
+*"Which specific zones (not just boroughs) generate the most trips and revenue?"*
 
 | Zone | Borough | Trips | Avg miles | Revenue |
 |---|---|---|---|---|
@@ -51,7 +66,8 @@ The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table �
 
 **Takeaway:** the two airports dominate by revenue despite modest trip counts — long trips (12-18 miles) at premium fares.
 
-### Service zone analysis
+### 3. Service zone analysis
+*"Do fares and tipping behavior differ between Yellow Zone, Boro Zone, and Airports?"*
 
 | Service zone | Trips | Avg fare | Avg tips | Shared-ride rate |
 |---|---|---|---|---|
@@ -61,7 +77,8 @@ The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table �
 
 **Takeaway:** Airport trips cost ~2x Yellow Zone and ~3x Boro Zone fares — and are essentially never shared (0.0003% vs 1-2% elsewhere), which makes sense given airport pickups are usually solo travelers with luggage.
 
-### Revenue by service zone
+### 4. Revenue by service zone
+*"Where does the money actually come from, and how well are drivers paid in each zone?"*
 
 | Service zone | Trips | Total revenue | Avg driver pay | Avg miles |
 |---|---|---|---|---|
@@ -71,7 +88,8 @@ The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table �
 
 **Takeaway:** despite having 6% of the trip volume, Airports generate ~10% of total revenue and pay drivers over 2x more per trip on average.
 
-### Accessibility metrics
+### 5. Accessibility metrics
+*"Is the service being used equitably across boroughs for wheelchair-accessible requests?"*
 
 | Borough | Trips | Wheelchair request rate | Shared-ride rate |
 |---|---|---|---|
@@ -85,9 +103,10 @@ The `pickup_zone.*` entries are dimensions from the *joined* zone lookup table �
 
 ---
 
-Every one of these tables came from a single reusable `.query(dimensions=..., measures=...)` call against the `fhvhv_trips` model defined in `nyc_taxi.yml` — none of them needed a new join or a new aggregation formula written by hand.
+The point of all five tables above isn't the taxi insights themselves — it's that **every one of them came from the same reusable `.query(dimensions=..., measures=...)` call** against the `fhvhv_trips` model defined in `nyc_taxi.yml`. None of them needed a new join or a new aggregation formula written by hand; only the `dimensions=` and `measures=` arguments changed between queries.
 
-### Output sample:
+<details>
+<summary>Raw terminal output (click to expand)</summary>
 
 ```
 ❯ make run
@@ -147,22 +166,23 @@ Accessibility metrics by pickup borough:
 4           Manhattan     7122571                 0.002980          0.013039
 5              Queens     4453220                 0.002683          0.019028
 ```
+</details>
 
 ## Why this matters: before vs. after
 
-It's easy to *say* a semantic layer "prevents inconsistent metrics." It's more convincing to *show* it breaking without one.
+Everything above shows the semantic layer being *convenient* — fewer lines, no hand-written joins. But convenience isn't the strongest argument for using one. The stronger argument is **consistency**: without a shared definition, two people can both write reasonable-looking, error-free code and get *different* answers to the same question.
 
-`demo/before_after_demo.py` (included in this folder) is a small, self-contained, runnable script — no need to download the 20M-row NYC file — that reproduces a realistic bug and shows how a semantic layer prevents it.
+`demo/before_after_demo.py` proves this with a small, self-contained, runnable script — no need to download the 20M-row NYC file — that reproduces a realistic bug and shows how a shared definition prevents it.
 
 ### The setup
 
-Two data sources, same shape as the real ones in this repo:
+Two synthetic data sources, same shape as the real ones in this repo:
 - a `trips` table (`PULocationID`, `base_passenger_fare`, ...)
 - a `zones` lookup table (`LocationID`, `Borough`, ...) — with a **realistic data-quality flaw baked in**: `LocationID 4` ("Union Sq") appears **twice**, because a re-ingestion job appended instead of replaced. This is the same class of bug reported in [boring-semantic-layer issue #32](https://github.com/boringdata/boring-semantic-layer/issues/32).
 
 ### Before: two analysts, two answers, no error message
 
-Two people independently answer "trip count and average fare by borough?" — one writes the obvious join, the other happens to add a `DISTINCT` because they'd seen dodgy lookup tables before. Both scripts run cleanly:
+Two people independently answer "trip count and average fare by borough?" — one writes the obvious join, the other happens to add a `DISTINCT` because they'd seen dodgy lookup tables before. Both scripts run cleanly, with no error from either:
 
 ```
 Analyst A's result (Dashboard #1):
@@ -181,58 +201,67 @@ Analyst B's result (Dashboard #2), same question, same day:
 
 ### After: one definition, every consumer agrees
 
-With the join and the metric defined once (in a `.yml` file, exactly like this repo's `nyc_taxi.yml`), the dedup fix is applied **once**, at the data-prep step — not copy-pasted into every script:
-
-```yaml
-fhvhv_trips_demo:
-  joins:
-    pickup_zone:
-      model: taxi_zones_demo
-      type: one
-      left_on: PULocationID
-      right_on: LocationID
-```
+With the join and the aggregation defined **once**, as a single shared function, instead of copy-pasted into every script:
 
 ```python
-taxi_zones_tbl = con.read_csv("zones.csv").distinct(on=["LocationID"])  # fixed once, here
+def query_trips_by_borough(con):
+    return con.execute("""
+        WITH zones_deduped AS (
+            SELECT DISTINCT ON ("LocationID") "LocationID", "Borough"
+            FROM read_csv('zones.csv')
+        )
+        SELECT z."Borough", COUNT(*) AS trip_count, AVG(t.base_passenger_fare) AS avg_base_fare
+        FROM read_parquet('trips.parquet') t
+        JOIN zones_deduped z ON t."PULocationID" = z."LocationID"
+        GROUP BY z."Borough"
+    """).df()
 ```
 
-Now *any* consumer calling `trips_sm.query(...)` gets the same, correct number:
+Now *any* consumer calling `query_trips_by_borough(con)` gets the same, correct number:
 
 ```
-Dashboard #1 (via semantic layer):
-  pickup_zone.borough  trip_count avg_base_fare
-1           Manhattan           3         27.42
+Dashboard #1 (calls the shared definition):
+     Borough  trip_count  avg_base_fare
+2  Manhattan           3      27.416667
 
-Dashboard #2 (via semantic layer), same question:
-  pickup_zone.borough  trip_count avg_base_fare
-1           Manhattan           3         27.42
+Dashboard #2 (calls the shared definition), same question:
+     Borough  trip_count  avg_base_fare
+2  Manhattan           3      27.416667
 
 >>> Identical every time, because there is only one place the
     join + the metric formula could have been written. <<<
 ```
 
+This is a small stand-in for what `nyc_taxi.yml` does for real: the fix (deduping the zone lookup) lives in **one place**, and everything downstream inherits it automatically.
+
 ### The duplication, quantified
 
-| | Before (raw) | After (semantic layer) |
+| | Before (raw, duplicated) | After (one shared definition) |
 |---|---|---|
-| Places the join is written | once per consumer script (2, 5, 10...) | once, in `nyc_taxi_demo.yml` |
-| Places `avg_base_fare` is defined | once per consumer script | once, in `nyc_taxi_demo.yml` |
-| Fixing a data bug (like the duplicate zone row) | edit every script that joins to `zones` | edit the one table definition |
+| Places the join is written | once per consumer script (2, 5, 10...) | once |
+| Places the metric formula is defined | once per consumer script | once |
+| Fixing a data bug (like the duplicate zone row) | edit every script that joins to `zones` | edit the one definition |
 | Risk of two dashboards silently disagreeing | yes (demonstrated above) | no — same code path every time |
 
 ### Run it yourself
 
+Only needs `duckdb` and `pandas` — nothing else, no version pinning to worry about:
+
 ```bash
 cd demo
-pip install duckdb ibis-framework[duckdb] boring-semantic-layer
-python make_data.py          # generates the synthetic trips/zones data
-python before_after_demo.py  # runs the before/after comparison
+
+# Step 1: generate the synthetic trips/zones data (takes a few seconds, no download needed)
+uv run --isolated --with duckdb --with pandas python make_data.py
+
+# Step 2: run the before/after comparison
+uv run --isolated --with duckdb --with pandas python before_after_demo.py
 ```
 
-> **NOTE: Download NYC data locally to not get 403 forbidden if you execute to many times**
-> 
-> ```sh
-> wget https://d37ci6vzurychx.cloudfront.net/trip-data/fhvhv_tripdata_2025-06.parquet
-> wget https://d37ci6vzurychx.cloudfront.net/misc/taxi+_zone_lookup.csv
-> ```
+**What to look for in the output:**
+
+1. Under `BEFORE`: two tables, both labeled "Manhattan" — **Dashboard #1 says `trip_count = 6`, Dashboard #2 says `trip_count = 3`**, for the exact same question, run the same day, with neither query throwing an error.
+2. Under `AFTER`: two tables, both showing **`trip_count = 3`** for Manhattan — identical, because both dashboards call the same shared function instead of each writing their own copy of the join and aggregation.
+
+If your output doesn't show that split (6 vs. 3) in the BEFORE section, re-run `make_data.py` first.
+
+> **Why plain DuckDB instead of `boring-semantic-layer` for this specific demo:** the "after" half here demonstrates the underlying concept (one definition, called by every consumer) in plain Python rather than via `boring-semantic-layer` itself, because that library's YAML join syntax has changed across recent releases. The main project (`nyc_taxi.py` / `nyc_taxi.yml`) still uses `boring-semantic-layer` directly — if you hit a `ValueError` about a missing join field running that one, check which version got installed (`uv pip show boring-semantic-layer`) against what `nyc_taxi.yml`'s syntax expects.
