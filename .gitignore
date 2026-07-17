@@ -1,0 +1,83 @@
+# --- Downloaded NYC taxi data (per README's wget instructions) ---
+2
+*.parquet
+3
+*.csv
+4
+data/*
+5
+!data/.gitkeep
+6
+ 
+7
+# --- Python ---
+8
+__pycache__/
+9
+*.py[cod]
+10
+*$py.class
+11
+*.egg-info/
+12
+.eggs/
+13
+build/
+14
+dist/
+15
+ 
+16
+# --- Virtual environments ---
+17
+.venv/
+18
+venv/
+19
+env/
+20
+ 
+21
+# --- uv ---
+22
+.uv/
+23
+# Note: uv.lock is intentionally NOT ignored — keep it committed so
+24
+# `uv sync` reproduces the exact boring-semantic-layer version this
+25
+# repo was tested against.
+26
+ 
+27
+# --- Environment / secrets ---
+28
+.env
+29
+.env.*
+30
+ 
+31
+# --- Editor/OS cruft ---
+32
+.vscode/
+33
+.idea/
+34
+.DS_Store
+35
+Thumbs.db
+36
+ 
+37
+# --- Jupyter ---
+38
+.ipynb_checkpoints/
+39
+ 
+40
+# --- Generated demo data (from demo/make_data.py) ---
+41
+demo/*.parquet
+42
+demo/*.csv

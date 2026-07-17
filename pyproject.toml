@@ -1,0 +1,11 @@
+[project]
+name = "semantic-layer-demo"
+version = "0.1.0"
+description = "A demo project that uses boring-semantic-layer to build a semantic layer over trip records. The project demonstrates how to model dimensions and measures, query business metrics, and analyze trip volumes, revenue, accessibility, and geographic trends."
+requires-python = ">=3.10"
+dependencies = [
+    "PyYAML",
+    "boring-semantic-layer",
+    "boring-semantic-layer[visualization]",
+    "altair[all]",
+]

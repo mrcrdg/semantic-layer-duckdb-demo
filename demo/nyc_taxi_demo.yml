@@ -1,0 +1,29 @@
+taxi_zones_demo:
+  table: taxi_zones_tbl
+  primary_key: LocationID
+
+  dimensions:
+    location_id: _.LocationID
+    borough: _.Borough
+
+  measures:
+    zone_count: _.count()
+
+fhvhv_trips_demo:
+  table: trips_tbl
+  time_dimension: trip_id
+  smallest_time_grain: TIME_GRAIN_SECOND
+
+  dimensions:
+    trip_id: _.trip_id
+
+  measures:
+    trip_count: _.count()
+    avg_base_fare: _.base_passenger_fare.mean()
+
+  joins:
+    pickup_zone:
+      model: taxi_zones_demo
+      type: one
+      left_on: PULocationID
+      right_on: LocationID
